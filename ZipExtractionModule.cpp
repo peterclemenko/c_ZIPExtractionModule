@@ -15,16 +15,19 @@
  * for the extracted files. 
  */
 
+// Framework includes
+#include "TskModuleDev.h"
+
 // System includes
+#ifdef TSK_WIN32
 #include <windows.h>
+#else
+#error "Only Windows is currently supported"
+#endif
+
 #include <sstream>
 #include <iostream>
 #include <fstream>
-
-// Module includes
-
-// Framework includes
-#include "TskModuleDev.h"
 
 // Poco includes
 #include "Poco/Path.h"
@@ -32,20 +35,15 @@
 #include "Poco/Zip/ZipStream.h"
 #include "Poco/Zip/Decompress.h"
 
-// A map of directory names to file ids so that we can
-// associate files/directories with the correct parent.
-typedef std::map<std::string, uint64_t> DIRECTORY_MAP;
-DIRECTORY_MAP directoryMap;
-
 extern "C" 
 {
     /**
      * Get the file id corresponding to the last directory on the given path.
      * If elements along the path have not been seen before, create new entries
-     * for those elements. The parent id for top level directories will be the
-     * file id of the zip file.
+     * for those elements in the database and in the directory map (3rd parameter). 
+	 * The parent id for top level directories will be the file id of the zip file.
      */
-    uint64_t getParentIdForPath(Poco::Path& path, const uint64_t fileId, std::string parentPath)
+    uint64_t getParentIdForPath(Poco::Path& path, const uint64_t fileId, std::string parentPath, std::map<std::string, uint64_t>& directoryMap)
     {
         // If the path references a file, make it refer to to its parent instead
         if (path.isFile())
@@ -53,12 +51,12 @@ extern "C"
 
         // Initialize parent id to be the file id of the zip file.
         uint64_t parentId = fileId;
-        DIRECTORY_MAP::const_iterator pos;
-        Poco::Path tempPath;
-        TskImgDB& imgDB = TskServices::Instance().getImgDB();
 
         // Iterate over every element of the path checking to see if we 
-        // already have an entry in the directory map.
+        // already have an entry in the database and in the directory map.
+        Poco::Path tempPath;
+        TskImgDB& imgDB = TskServices::Instance().getImgDB();
+        std::map<std::string, uint64_t>::const_iterator pos;
         for (int i = 0; i < path.depth(); i++)
         {
             // Build up a temporary path that only contains the path
@@ -71,11 +69,11 @@ extern "C"
 
             if (pos == directoryMap.end())
             {
-                                std::string fullpath = "";
-
+				std::string fullpath = "";
                 fullpath.append(parentPath);
                 fullpath.append("\\");
                 fullpath.append(path.toString());
+
                 // No entry exists for this directory so we create one.
                 if (imgDB.addDerivedFileInfo(path[i], parentId,
                                              true, // isDirectory
@@ -109,9 +107,6 @@ extern "C"
         return parentId;
     }
 
-    /**
-     *
-     */
     TskModule::Status TSK_MODULE_EXPORT initialize(std::string& args)
     {
         return TskModule::OK;
@@ -127,9 +122,9 @@ extern "C"
 
         try
         {
-            // Ensure that there are no entries in the directory map from
-            // an earlier run.
-            directoryMap.clear();
+			// Create a map of directory names to file ids so that we can
+			// associate files/directories with the correct parent.
+			std::map<std::string, uint64_t> directoryMap;
 
             TskImgDB& imgDB = TskServices::Instance().getImgDB();
 
@@ -174,7 +169,7 @@ extern "C"
                         // so that we can accurately track parent relationships. The
                         // getParentIdForPath() method creates the database entries for the
                         // given path and returns the parentId of the last directory on the path.
-                        parentId = getParentIdForPath(parent, pFile->id(), pFile->fullPath());
+                        parentId = getParentIdForPath(parent, pFile->id(), pFile->fullPath(), directoryMap);
                     }
                     else
                     {
@@ -197,7 +192,6 @@ extern "C"
                 uint64_t fileId;
 
                 std::string fullpath = "";
-
                 fullpath.append(pFile->fullPath());
                 fullpath.append("\\");
                 fullpath.append(path.toString());
@@ -210,7 +204,7 @@ extern "C"
                     0, // ctime
                     0, // crtime
                     0, // atime
-                    fh->second.lastModifiedAt().utcTime(),
+                    static_cast<int>(fh->second.lastModifiedAt().utcTime()),
                     fileId, fullpath) == -1) 
                 {
                         std::wstringstream msg;
@@ -227,8 +221,14 @@ extern "C"
                 {
                     // Only DEFLATE and STORE compression methods are supported. The STORE method
                     // simply stores a file without compression.
-                    if (fh->second.getCompressionMethod() != Poco::Zip::ZipCommon::CM_DEFLATE &&
-                        fh->second.getCompressionMethod() != Poco::Zip::ZipCommon::CM_STORE)
+                    if (fh->second.getCompressionMethod() == Poco::Zip::ZipCommon::CM_DEFLATE ||
+                        fh->second.getCompressionMethod() == Poco::Zip::ZipCommon::CM_STORE)
+                    {
+                        // Save the file for subsequent processing
+                        Poco::Zip::ZipInputStream zipin(input, fh->second);
+                        TskServices::Instance().getFileManager().addFile(fileId, zipin);
+                    }
+                    else
                     {
                         std::wstringstream msg;
                         msg << L"ZipExtractionModule - Unsupported compression method for file: "
@@ -236,12 +236,6 @@ extern "C"
                         LOGWARN(msg.str());
                         
                         fileStatus = TskImgDB::IMGDB_FILES_STATUS_ANALYSIS_FAILED;
-                    }
-                    else
-                    {
-                        // Save the file for subsequent processing
-                        Poco::Zip::ZipInputStream zipin(input, fh->second);
-                        TskServices::Instance().getFileManager().addFile(fileId, zipin);
                     }
                 }
 
