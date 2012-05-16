@@ -224,9 +224,12 @@ extern "C"
                     if (fh->second.getCompressionMethod() == Poco::Zip::ZipCommon::CM_DEFLATE ||
                         fh->second.getCompressionMethod() == Poco::Zip::ZipCommon::CM_STORE)
                     {
-                        // Save the file for subsequent processing
+                        // Save the file for subsequent processing.
                         Poco::Zip::ZipInputStream zipin(input, fh->second);
                         TskServices::Instance().getFileManager().addFile(fileId, zipin);
+
+						// Schedule subsequent processing.
+						TskServices::Instance().getScheduler().schedule(Scheduler::FileAnalysis, fileId, fileId);
                     }
                     else
                     {
