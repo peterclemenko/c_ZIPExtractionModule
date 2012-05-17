@@ -15,103 +15,116 @@
  * for the extracted files. 
  */
 
-// Framework includes
-#include "TskModuleDev.h"
-
 // System includes
-#ifdef TSK_WIN32
-#include <windows.h>
-#else
-#error "Only Windows is currently supported"
-#endif
-
 #include <sstream>
 #include <iostream>
 #include <fstream>
 
 // Poco includes
 #include "Poco/Path.h"
-#include "Poco/Zip/ZipArchive.h"
 #include "Poco/Zip/ZipStream.h"
 #include "Poco/Zip/Decompress.h"
+
+// Framework includes
+#include "TskModuleDev.h"
+
+/**
+ * Get the file id corresponding to the last directory on the given path.
+ * If elements along the path have not been seen before, create new entries
+ * for those elements both in the database and in the directory map (3rd parameter). 
+ * Note that the parent id for top level directories will be the file id of the zip file.
+ */
+static uint64_t getParentIdForPath(Poco::Path& path, const uint64_t fileId, std::string parentPath, std::map<std::string, uint64_t>& directoryMap)
+{
+    // If the path references a file, make it refer to to its parent instead
+    if (path.isFile())
+        path = path.makeParent();
+
+    // Initialize parent id to be the file id of the zip file.
+    uint64_t parentId = fileId;
+
+    // Iterate over every element of the path checking to see if we 
+    // already have an entry in the database and in the directory map.
+    Poco::Path tempPath;
+    TskImgDB& imgDB = TskServices::Instance().getImgDB();
+    std::map<std::string, uint64_t>::const_iterator pos;
+    for (int i = 0; i < path.depth(); i++)
+    {
+        // Build up a temporary path that only contains the path
+        // elements seen so far. This temporary path will be used
+        // below to add the full path to the map.
+        tempPath.pushDirectory(path[i]);
+
+        // Have we already seen this path?
+        pos = directoryMap.find(tempPath.toString());
+
+        if (pos == directoryMap.end())
+        {
+			std::string fullpath = "";
+            fullpath.append(parentPath);
+            fullpath.append("\\");
+            fullpath.append(path.toString());
+
+            // No entry exists for this directory so we create one.
+            if (imgDB.addDerivedFileInfo(path[i], parentId,
+                                         true, // isDirectory
+                                         0, // uncompressed size
+                                         "", // no details
+                                         0, // ctime
+                                         0, // crtime
+                                         0, // atime
+                                         0, // mtime
+                                         parentId,
+                                         fullpath) == -1)
+            {
+                std::wstringstream msg;
+                msg << L"ZipExtractionModule - addDerivedFileInfo failed for name="
+                    << path[i].c_str();
+                LOGERROR(msg.str());
+            }
+
+            // Add the full path (to this point) and new id to the map.
+            directoryMap[tempPath.toString()] = parentId;
+
+            // Update file status to indicate that it is ready for analysis.
+            imgDB.updateFileStatus(parentId, TskImgDB::IMGDB_FILES_STATUS_READY_FOR_ANALYSIS);
+        }
+        else
+        {
+            parentId = pos->second;
+        }
+    }
+
+    return parentId;
+}
 
 extern "C" 
 {
     /**
-     * Get the file id corresponding to the last directory on the given path.
-     * If elements along the path have not been seen before, create new entries
-     * for those elements in the database and in the directory map (3rd parameter). 
-	 * The parent id for top level directories will be the file id of the zip file.
+     * Module initialization function. Receives a string of intialization arguments, 
+     * typically read by the caller from a pipeline configuration file. 
+     * Returns TskModule::OK or TskModule::FAIL. Returning TskModule::FAIL indicates 
+     * the module is not in an operational state.  
+     *
+     * @param args Initialization arguments.
+     * @return TskModule::OK if initialization succeeded, otherwise TskModule::FAIL.
      */
-    uint64_t getParentIdForPath(Poco::Path& path, const uint64_t fileId, std::string parentPath, std::map<std::string, uint64_t>& directoryMap)
-    {
-        // If the path references a file, make it refer to to its parent instead
-        if (path.isFile())
-            path = path.makeParent();
-
-        // Initialize parent id to be the file id of the zip file.
-        uint64_t parentId = fileId;
-
-        // Iterate over every element of the path checking to see if we 
-        // already have an entry in the database and in the directory map.
-        Poco::Path tempPath;
-        TskImgDB& imgDB = TskServices::Instance().getImgDB();
-        std::map<std::string, uint64_t>::const_iterator pos;
-        for (int i = 0; i < path.depth(); i++)
-        {
-            // Build up a temporary path that only contains the path
-            // elements seen so far. This temporary path will be used
-            // below to add the full path to the map.
-            tempPath.pushDirectory(path[i]);
-
-            // Have we already seen this path?
-            pos = directoryMap.find(tempPath.toString());
-
-            if (pos == directoryMap.end())
-            {
-				std::string fullpath = "";
-                fullpath.append(parentPath);
-                fullpath.append("\\");
-                fullpath.append(path.toString());
-
-                // No entry exists for this directory so we create one.
-                if (imgDB.addDerivedFileInfo(path[i], parentId,
-                                             true, // isDirectory
-                                             0, // uncompressed size
-                                             "", // no details
-                                             0, // ctime
-                                             0, // crtime
-                                             0, // atime
-                                             0, // mtime
-                                             parentId,
-                                             fullpath) == -1)
-                {
-                    std::wstringstream msg;
-                    msg << L"ZipExtractionModule - addDerivedFileInfo failed for name="
-                        << path[i].c_str();
-                    LOGERROR(msg.str());
-                }
-
-                // Add the full path (to this point) and new id to the map.
-                directoryMap[tempPath.toString()] = parentId;
-
-                // Update file status to indicate that it is ready for analysis.
-                imgDB.updateFileStatus(parentId, TskImgDB::IMGDB_FILES_STATUS_READY_FOR_ANALYSIS);
-            }
-            else
-            {
-                parentId = pos->second;
-            }
-        }
-
-        return parentId;
-    }
-
-    TskModule::Status TSK_MODULE_EXPORT initialize(std::string& args)
+    TskModule::Status TSK_MODULE_EXPORT initialize(std::string& args = std::string())
     {
         return TskModule::OK;
     }
-
+    
+    /**
+     * Module execution function. Receives a pointer to a file the module is to
+     * process. The file is represented by a TskFile interface from which both
+     * file content and file metadata can be retrieved. Returns TskModule::OK, 
+     * TskModule::FAIL, or TskModule::STOP. Returning TskModule::FAIL indicates 
+     * the module experienced an error processing the file. Returning TskModule::STOP
+     * is a request to terminate processing of the file.
+     *
+     * @param pFile A pointer to a file to be processed.
+     * @returns TskModule::OK on success and TskModule::FAIL on error.
+     */
     TskModule::Status TSK_MODULE_EXPORT run(TskFile * pFile)
     {
         if (pFile == NULL)
@@ -122,22 +135,20 @@ extern "C"
 
         try
         {
-			// Create a map of directory names to file ids so that we can
-			// associate files/directories with the correct parent.
-			std::map<std::string, uint64_t> directoryMap;
-
             TskImgDB& imgDB = TskServices::Instance().getImgDB();
 
-            // We need to have the file on disk so save it.
+			// Create a map of directory names to file ids to use to 
+			// associate files/directories with the correct parent.
+			std::map<std::string, uint64_t> directoryMap;
+            uint64_t parentId = 0;
+
+            // Save the file to disk and attempt to open it as an archive file.
             pFile->save();
-
             std::ifstream input(pFile->getPath().c_str(), std::ios_base::binary);
-
             Poco::Zip::ZipArchive archive(input);
             Poco::Zip::ZipArchive::FileHeaders::const_iterator fh;
 
-            uint64_t parentId = 0;
-
+            // Attempt to extract the files contained in the archive file.
             for (fh = archive.headerBegin(); fh != archive.headerEnd(); ++fh)
             {
                 Poco::Path path(fh->first);
@@ -149,7 +160,7 @@ extern "C"
                 else
                     name = path[path.depth()];
 
-                // Determine what our parent id should be.
+                // Determine the parent id of the file.
                 if (path.depth() == 0 || path.isDirectory() && path.depth() == 1)
                     // This file or directory lives at the root so our parent id
                     // is the containing file id.
@@ -157,7 +168,7 @@ extern "C"
                 else
                 {
                     // We are not at the root so we need to lookup the id of our
-                    // parent directory
+                    // parent directory.
                     std::map<std::string, uint64_t>::const_iterator pos;
                     pos = directoryMap.find(parent.toString());
 
@@ -177,7 +188,7 @@ extern "C"
                     }
                 }
 
-                // Store some extra details about the derived file
+                // Store some extra details about the derived (i.e, extracted) file.
                 std::stringstream details;
                 details << "<ZIPFILE name=\"" << fh->second.getFileName()
                     << "\" compressed_size=\"" << fh->second.getCompressedSize()
@@ -275,6 +286,12 @@ extern "C"
         return TskModule::OK;
     }
 
+    /**
+     * Module cleanup function. This is where the module should free any resources 
+     * allocated during initialization or execution.
+     *
+     * @returns TskModule::OK on success and TskModule::FAIL on error.
+     */
     TskModule::Status TSK_MODULE_EXPORT finalize()
     {
         return TskModule::OK;
