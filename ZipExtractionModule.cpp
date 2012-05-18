@@ -123,7 +123,7 @@ extern "C"
      * is a request to terminate processing of the file.
      *
      * @param pFile A pointer to a file to be processed.
-     * @returns TskModule::OK on success and TskModule::FAIL on error.
+     * @returns TskModule::OK on success, TskModule::FAIL on error, or TskModule::STOP.
      */
     TskModule::Status TSK_MODULE_EXPORT run(TskFile * pFile)
     {
