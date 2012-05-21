@@ -109,7 +109,7 @@ extern "C"
      * @param args Initialization arguments.
      * @return TskModule::OK if initialization succeeded, otherwise TskModule::FAIL.
      */
-    TskModule::Status TSK_MODULE_EXPORT initialize(std::string& args = std::string())
+    TskModule::Status TSK_MODULE_EXPORT initialize(std::string& args)
     {
         return TskModule::OK;
     }
