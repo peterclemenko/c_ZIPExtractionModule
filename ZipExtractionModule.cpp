@@ -164,7 +164,7 @@ extern "C"
                 if (path.depth() == 0 || path.isDirectory() && path.depth() == 1)
                     // This file or directory lives at the root so our parent id
                     // is the containing file id.
-                    parentId = pFile->id();
+                    parentId = pFile->getId();
                 else
                 {
                     // We are not at the root so we need to lookup the id of our
@@ -180,7 +180,7 @@ extern "C"
                         // so that we can accurately track parent relationships. The
                         // getParentIdForPath() method creates the database entries for the
                         // given path and returns the parentId of the last directory on the path.
-                        parentId = getParentIdForPath(parent, pFile->id(), pFile->fullPath(), directoryMap);
+                        parentId = getParentIdForPath(parent, pFile->getId(), pFile->getFullPath(), directoryMap);
                     }
                     else
                     {
@@ -203,7 +203,7 @@ extern "C"
                 uint64_t fileId;
 
                 std::string fullpath = "";
-                fullpath.append(pFile->fullPath());
+                fullpath.append(pFile->getFullPath());
                 fullpath.append("\\");
                 fullpath.append(path.toString());
 
@@ -267,7 +267,7 @@ extern "C"
         {
             // Corrupt zip files are not uncommon, especially for carved files.
             std::wstringstream msg;
-            msg << L"ZipExtractionModule - Encountered corrupt zip file ( " << pFile->name().c_str()
+            msg << L"ZipExtractionModule - Encountered corrupt zip file ( " << pFile->getName().c_str()
                 << L")";
             LOGWARN(msg.str());
 
@@ -276,7 +276,7 @@ extern "C"
         catch (std::exception& ex)
         {
             std::wstringstream msg;
-            msg << L"ZipExtractionModule - Error processing zip file ( " << pFile->name().c_str()
+            msg << L"ZipExtractionModule - Error processing zip file ( " << pFile->getName().c_str()
                 << L") : " << ex.what();
             LOGERROR(msg.str());
 
