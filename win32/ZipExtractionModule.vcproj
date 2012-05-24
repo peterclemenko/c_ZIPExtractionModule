@@ -83,7 +83,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="&#x0D;&#x0A;"
+				CommandLine="xcopy &quot;$(POCO_HOME)\bin\PocoZipd.dll&quot; &quot;$(OutDir)&quot; /R /Y&#x0D;&#x0A;"
 			/>
 		</Configuration>
 		<Configuration
@@ -157,7 +157,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="&#x0D;&#x0A;"
+				CommandLine="xcopy &quot;$(POCO_HOME)\bin\PocoZip.dll&quot; &quot;$(OutDir)&quot; /R /Y&#x0D;&#x0A;"
 			/>
 		</Configuration>
 	</Configurations>
