@@ -101,6 +101,36 @@ static uint64_t getParentIdForPath(Poco::Path& path, const uint64_t fileId, std:
 extern "C" 
 {
     /**
+     * Module identification function. 
+     *
+     * @return The name of the module as a std::string.
+     */
+    const char* name()
+    {
+        return "ZipExtraction";
+    }
+
+    /**
+     * Module identification function. 
+     *
+     * @return A description of the module as a std::string.
+     */
+    const char* description()
+    {
+        return "";
+    }
+
+    /**
+     * Module identification function. 
+     *
+     * @return The version of the module as a std::string.
+     */
+    const char* version()
+    {
+        return "0.0.0";
+    }
+
+    /**
      * Module initialization function. Receives a string of intialization arguments, 
      * typically read by the caller from a pipeline configuration file. 
      * Returns TskModule::OK or TskModule::FAIL. Returning TskModule::FAIL indicates 
@@ -109,7 +139,7 @@ extern "C"
      * @param args Initialization arguments.
      * @return TskModule::OK if initialization succeeded, otherwise TskModule::FAIL.
      */
-    TskModule::Status TSK_MODULE_EXPORT initialize(std::string& args)
+    TskModule::Status TSK_MODULE_EXPORT initialize(const char* args)
     {
         return TskModule::OK;
     }
