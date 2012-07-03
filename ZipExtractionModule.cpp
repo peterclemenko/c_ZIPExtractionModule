@@ -117,7 +117,7 @@ extern "C"
      */
     TSK_MODULE_EXPORT const char *description()
     {
-        return "";
+        return "Extracts the files stored inside of ZIP files";
     }
 
     /**
