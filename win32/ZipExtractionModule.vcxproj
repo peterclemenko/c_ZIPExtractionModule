@@ -88,12 +88,6 @@
   <ItemGroup>
     <ClCompile Include="..\ZipExtractionModule.cpp" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\win32\framework\framework.vcxproj">
-      <Project>{f791b16a-1489-4526-9fff-cb481cec5414}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
