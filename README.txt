@@ -13,6 +13,9 @@ enables you to find all possible files with evidence. Files
 extracted from ZIP files are scheduled so that they can later be
 analyzed in a file anlaysis pipeline.
 
+DEPLOYMENT REQUIREMENTS
+
+This module does not have any specific deployment requirements.
 
 USAGE
 
