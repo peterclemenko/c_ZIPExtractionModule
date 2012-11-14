@@ -4,7 +4,7 @@ ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 
 lib_LTLIBRARIES = libzipextractionmodule-@ZIPEXTRACTIONMODULE_API_VERSION@.la
 
-AM_CPPFLAGS = -I../../../framework -I$(srcdir)/../../..
+AM_CPPFLAGS = -I../../../framework -I../../../framework/Services -I$(srcdir)/../../.. -c
 
 libzipextractionmodule_@ZIPEXTRACTIONMODULE_API_VERSION@_la_SOURCES = ZipExtractionModule.cpp
 
