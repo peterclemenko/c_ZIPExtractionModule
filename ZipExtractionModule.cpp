@@ -28,6 +28,13 @@
 // Framework includes
 #include "TskModuleDev.h"
 
+namespace
+{
+    const char *MODULE_NAME = "ZipExtraction";
+    const char *MODULE_DESCRIPTION = "Extracts the files stored inside of ZIP files";
+    const char *MODULE_VERSION = "1.0.0";
+}
+
 /**
  * Get the file id corresponding to the last directory on the given path.
  * If elements along the path have not been seen before, create new entries
@@ -107,7 +114,7 @@ extern "C"
      */
     TSK_MODULE_EXPORT const char *name()
     {
-        return "ZipExtraction";
+        return MODULE_NAME;
     }
 
     /**
@@ -117,7 +124,7 @@ extern "C"
      */
     TSK_MODULE_EXPORT const char *description()
     {
-        return "Extracts the files stored inside of ZIP files";
+        return MODULE_DESCRIPTION;
     }
 
     /**
@@ -127,7 +134,7 @@ extern "C"
      */
     TSK_MODULE_EXPORT const char *version()
     {
-        return "1.0.0";
+        return MODULE_VERSION;
     }
 
     /**
@@ -191,7 +198,7 @@ extern "C"
                     name = path[path.depth()];
 
                 // Determine the parent id of the file.
-                if (path.depth() == 0 || path.isDirectory() && path.depth() == 1)
+                if (path.depth() == 0 || (path.isDirectory() && path.depth() == 1))
                     // This file or directory lives at the root so our parent id
                     // is the containing file id.
                     parentId = pFile->getId();
