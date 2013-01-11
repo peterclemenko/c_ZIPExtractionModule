@@ -26,7 +26,7 @@
 #include "Poco/Zip/Decompress.h"
 
 // Framework includes
-#include "TskModuleDev.h"
+#include "tsk/framework/utilities/TskModuleDev.h"
 
 namespace
 {
