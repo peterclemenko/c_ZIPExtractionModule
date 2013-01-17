@@ -5,7 +5,6 @@ AC_PREREQ([2.59])
 
 AC_INIT(c_ZIPExtractionModule, 1.0.0)
 AC_CONFIG_SRCDIR([ZipExtractionModule.cpp])
-AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR(config)
 AM_INIT_AUTOMAKE([foreign])
 AM_PROG_LIBTOOL
@@ -44,28 +43,20 @@ AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_CHECK_FUNCS([memset strtoul strtoull])
 
-# Check if the module is under TskModules
-if test -f ../TskModules/Makefile.am; then
-   AC_SUBST(FW_LIBS, "../../lib/libtskframework.la ../../../tsk3/libtsk3.la")
+# Check if the module is under tsk/framework/modules
+if test -f ../modules/Makefile.am; then
+   AC_SUBST(FW_LIBS, "../../tsk/framework/libtskframework.la ../../../tsk/libtsk.la")
    AC_SUBST(TSK_INCLUDE, "-I../../..")
    AC_SUBST(FW_INCLUDE,  "-I../..")
 else
-   # Not part of TskModules, check if Tsk and Framework has been installed
+   # Not part of tsk/framework/modules, check if Tsk and Framework has been installed
    AC_SUBST(FW_LIBS, "")
-   AC_CHECK_HEADERS([tsk3/libtsk.h],[HAVE_TSK_INCLUDE=1],AC_MSG_ERROR([Tsk include files not found.]))
-   AC_CHECK_LIB([tsk3],[main],[HAVE_TSK_LIB=1],AC_MSG_ERROR([Tsk library not found.]))
-   if test "$HAVE_TSK_INCLUDE"; then
-       AC_SUBST(TSK_INCLUDE, "")
-       AC_SUBST(FW_INCLUDE,  "")
-   else
-       AC_SUBST(TSK_INCLUDE, "-I../../..")
-       AC_SUBST(FW_INCLUDE,  "-I../..")
-   fi
-   if test "HAVE_TSK_LIB"; then
-       AC_SUBST(FWLIBS, "")
-   else
-       AC_SUBST(FW_LIBS, "../../lib/libtskframework.la ../../../tsk3/libtsk3.la")
-   fi
+   AC_SUBST(TSK_INCLUDE, "")
+   AC_SUBST(FW_INCLUDE,  "")
+   AC_CHECK_HEADERS([tsk/libtsk.h],[],AC_MSG_ERROR([Tsk include files not found.]))
+   AC_CHECK_LIB([tsk],[main],[],AC_MSG_ERROR([Tsk library not found.]))
+   AC_CHECK_HEADERS([tsk/framework/framework.h],[],AC_MSG_ERROR([Framework include files not found.]))
+   AC_CHECK_LIB([tskframework],[main],[],AC_MSG_ERROR([tskframework library not found.]))
 fi
 
 AC_CONFIG_FILES([Makefile])
