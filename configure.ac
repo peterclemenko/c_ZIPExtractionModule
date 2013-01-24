@@ -44,7 +44,7 @@ AC_FUNC_REALLOC
 AC_CHECK_FUNCS([memset strtoul strtoull])
 
 # Check if the module is under tsk/framework/modules
-if test -f ../modules/Makefile.am; then
+if test -f ../../modules/Makefile.am; then
    AC_SUBST(FW_LIBS, "../../tsk/framework/libtskframework.la ../../../tsk/libtsk.la")
    AC_SUBST(TSK_INCLUDE, "-I../../..")
    AC_SUBST(FW_INCLUDE,  "-I../..")
