@@ -43,6 +43,82 @@ AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_CHECK_FUNCS([memset strtoul strtoull])
 
+# Check for methods in library and check for header files
+AC_CHECK_HEADERS([Poco/Foundation.h Poco/Net/HTTPCookie.h Poco/DOM/Entity.h Poco/Util/Timer.h],
+  [],
+  AC_MSG_ERROR([Poco include files not found.])
+)
+
+AC_CHECK_LIB([PocoFoundation],[main],[HAVE_POCOFOUNDATION=1],AC_MSG_ERROR([PocoFoundation library not found.]))
+if test "$HAVE_POCOFOUNDATION"; then
+    save_libs="${LIBS}"
+    LIBS="-lPocoFoundation"
+    AC_LINK_IFELSE(
+        [AC_LANG_PROGRAM(
+            [#include "Poco/UnicodeConverter.h"],
+            [std::wstring wstr; Poco::UnicodeConverter::toUTF16("hello", wstr);]
+        )],
+        [LIBS="$LIBS $save_libs"],
+        [AC_MSG_ERROR([linking with PocoFoundation failed.])]
+    )
+fi
+
+AC_CHECK_LIB([PocoUtil],[main],[HAVE_POCOUTIL=1],AC_MSG_ERROR([PocoUtil library not found.]))
+if test "$HAVE_POCOUTIL"; then
+    save_libs="${LIBS}"
+    LIBS="-lPocoUtil"
+    AC_LINK_IFELSE(
+        [AC_LANG_PROGRAM(
+            [#include "Poco/Util/Option.h"],
+            [Poco::Util::Option();]
+        )],
+        [LIBS="$LIBS $save_libs"],
+        [AC_MSG_ERROR([linking with PocoUtil failed.])]
+    )
+fi
+
+AC_CHECK_LIB([PocoXML],[main],[HAVE_POCOXML=1],AC_MSG_ERROR([PocoXML library not found.]))
+if test "$HAVE_POCOXML"; then
+    save_libs="${LIBS}"
+    LIBS="-lPocoXML"
+    AC_LINK_IFELSE(
+        [AC_LANG_PROGRAM(
+            [#include "Poco/DOM/DOMParser.h"],
+            [Poco::XML::DOMParser().parse("http://www.google.com");]
+        )],
+        [LIBS="$LIBS $save_libs"],
+        [AC_MSG_ERROR([linking with PocoXML failed.])]
+    )
+fi
+
+AC_CHECK_LIB([PocoNet],[main],[HAVE_POCONET=1],AC_MSG_ERROR([PocoNet library not found.]))
+if test "$HAVE_POCONET"; then
+    save_libs="${LIBS}"
+    LIBS="-lPocoNet"
+    AC_LINK_IFELSE(
+        [AC_LANG_PROGRAM(
+            [#include "Poco/Net/HTTPClientSession.h"],
+            [Poco::Net::HTTPClientSession();]
+        )],
+        [LIBS="$LIBS $save_libs"],
+        [AC_MSG_ERROR([linking with PocoNET failed.])]
+    )
+fi
+
+AC_CHECK_LIB([PocoZip],[main],[HAVE_POCOZIP=1],AC_MSG_ERROR([PocoZip library not found.]))
+if test "$HAVE_POCOZIP"; then
+    save_libs="${LIBS}"
+    LIBS="-lPocoZip"
+    AC_LINK_IFELSE(
+        [AC_LANG_PROGRAM(
+            [#include "Poco/Zip/ZipArchive.h"],
+            [Poco::Zip::ZipArchive::FileHeaders::const_iterator fh;]
+        )],
+        [LIBS="$LIBS $save_libs"],
+        [AC_MSG_ERROR([linking with PocoZip failed.])]
+    )
+fi
+
 # Check if the module is under tsk/framework/modules
 if test -f ../../modules/Makefile.am; then
    AC_SUBST(FW_LIBS, "../../tsk/framework/libtskframework.la ../../../tsk/libtsk.la")
